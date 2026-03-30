@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { produtosAPI, vendasAPI, pagamentosAPI } from '../servicos/api';
+import { produtosAPI, vendasAPI, pagamentosAPI, impressoraAPI } from '../servicos/api';
 import { formatarMoeda, FORMAS_PAGAMENTO } from '../utils/formatadores';
 import { useAtalhos } from '../hooks/useAtalhos';
 import { gerarComprovante } from '../componentes/Comprovante';
 import ModalAjuda from '../componentes/ModalAjuda';
 
-export default function PDV() {
+export default function PDV({ usuario, caixaAtivo }) {
   // ── Estado ──────────────────────────────────────────
   const [termoBusca, setTermoBusca] = useState('');
   const [resultados, setResultados] = useState([]);
@@ -20,6 +20,10 @@ export default function PDV() {
   const [mostrarManual, setMostrarManual] = useState(false);
   const [processando, setProcessando] = useState(false);
   const [mensagem, setMensagem] = useState(null);
+
+  // Controle de Troco
+  const [valorRecebido, setValorRecebido] = useState('');
+  const trocoPendente = useRef(null);
   
   // Integração de Pagamentos
   const [pixGerado, setPixGerado] = useState(null);
@@ -165,10 +169,34 @@ export default function PDV() {
         })),
         desconto: descontoAtual,
         forma_pagamento: formaPagamentoAtual,
+        operador_id: usuario?.id || null,
+        caixa_id: caixaAtivo?.id || null,
       };
 
+      // Troco para dinheiro
+      if (formaPagamentoAtual === 'dinheiro' && trocoPendente.current) {
+        dados.valor_recebido = trocoPendente.current.valor_recebido;
+        dados.troco = trocoPendente.current.troco;
+      }
+
       const venda = await vendasAPI.registrar(dados);
-      gerarComprovante(venda);
+
+      // Gerar comprovante com dados extras
+      gerarComprovante({
+        ...venda,
+        operador_nome: usuario?.nome,
+        caixa_nome: caixaAtivo?.nome,
+      });
+
+      // Imprimir na térmica (silencioso - não bloqueia)
+      impressoraAPI.imprimirCupom({
+        venda,
+        operador: usuario?.nome,
+        caixa: caixaAtivo?.nome,
+      }).catch(() => {});
+
+      // Mostrar troco se pagamento em dinheiro
+      const trocoInfo = trocoPendente.current;
 
       setCarrinho([]);
       setDesconto(0);
@@ -176,11 +204,18 @@ export default function PDV() {
       setMostrarPagamento(false);
       setPixGerado(null);
       setTefTransacao(null);
+      setValorRecebido('');
+      trocoPendente.current = null;
       if (pollingRef.current) clearInterval(pollingRef.current);
       if (tefPollingRef.current) clearInterval(tefPollingRef.current);
       setFormaPagamento('dinheiro');
       inputBuscaRef.current?.focus();
-      mostrarMensagem(`✓ Venda finalizada! Total: ${formatarMoeda(venda.total)}`, 'sucesso');
+
+      if (trocoInfo && trocoInfo.troco > 0) {
+        mostrarMensagem(`✓ Venda finalizada! Total: ${formatarMoeda(venda.total)} · 💵 TROCO: ${formatarMoeda(trocoInfo.troco)}`, 'sucesso');
+      } else {
+        mostrarMensagem(`✓ Venda finalizada! Total: ${formatarMoeda(venda.total)}`, 'sucesso');
+      }
     } catch (erro) {
       mostrarMensagem(`Erro ao salvar venda: ${erro.message}`, 'perigo');
     } finally {
@@ -198,6 +233,16 @@ export default function PDV() {
     setProcessando(true);
 
     if (formaPagamento === 'dinheiro') {
+      const recebido = parseFloat(valorRecebido);
+      if (!recebido || recebido < total) {
+        mostrarMensagem('Valor recebido deve ser maior ou igual ao total', 'aviso');
+        setProcessando(false);
+        return;
+      }
+      trocoPendente.current = {
+        valor_recebido: recebido,
+        troco: recebido - total,
+      };
       await processarVendaLocal();
       return;
     }
@@ -555,6 +600,61 @@ export default function PDV() {
               </div>
             </div>
 
+            {/* Controle de Troco (Dinheiro) */}
+            {formaPagamento === 'dinheiro' && !pixGerado && !tefTransacao && (
+              <div className="troco-container">
+                <div className="campo">
+                  <label>💵 Valor Recebido (R$)</label>
+                  <input
+                    type="number"
+                    className="input input-grande troco-input"
+                    value={valorRecebido}
+                    onChange={(e) => setValorRecebido(e.target.value)}
+                    min="0"
+                    step="0.01"
+                    placeholder="0,00"
+                    autoFocus
+                    onKeyDown={(e) => { if (e.key === 'Enter') finalizarVenda(); }}
+                  />
+                </div>
+                {valorRecebido && parseFloat(valorRecebido) >= total && (
+                  <div className="troco-resultado">
+                    <span className="troco-label">TROCO</span>
+                    <span className="troco-valor">
+                      {formatarMoeda(parseFloat(valorRecebido) - total)}
+                    </span>
+                  </div>
+                )}
+                {valorRecebido && parseFloat(valorRecebido) < total && (
+                  <div className="troco-resultado troco-insuficiente">
+                    <span className="troco-label">⚠️ FALTAM</span>
+                    <span className="troco-valor">
+                      {formatarMoeda(total - parseFloat(valorRecebido))}
+                    </span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: 'var(--espaco-sm)' }}>
+                  {[2, 5, 10, 20, 50, 100, 200].map(v => (
+                    <button
+                      key={v}
+                      className="btn btn-secundario"
+                      style={{ flex: '1 1 auto', minWidth: '50px', fontSize: 'var(--tamanho-sm)' }}
+                      onClick={() => setValorRecebido(String(v))}
+                    >
+                      R$ {v}
+                    </button>
+                  ))}
+                  <button
+                    className="btn btn-sucesso"
+                    style={{ flex: '1 1 auto', minWidth: '60px', fontSize: 'var(--tamanho-sm)' }}
+                    onClick={() => setValorRecebido(String(total))}
+                  >
+                    Exato
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="mb-lg">
               <label className="text-sm text-muted mb-md" style={{ display: 'block' }}>Forma de pagamento:</label>
               <div className="grid-pagamento">
@@ -690,9 +790,9 @@ export default function PDV() {
                 <button
                   className="btn btn-sucesso btn-grande"
                   onClick={finalizarVenda}
-                  disabled={processando || !formaPagamento}
+                  disabled={processando || !formaPagamento || (formaPagamento === 'dinheiro' && (!valorRecebido || parseFloat(valorRecebido) < total))}
                 >
-                  {processando ? '⏳ Gerando...' : '💰 Confirmar Transação'}
+                  {processando ? '⏳ Processando...' : formaPagamento === 'dinheiro' ? `💵 Receber ${valorRecebido ? formatarMoeda(parseFloat(valorRecebido)) : ''}` : '💰 Confirmar Transação'}
                   <span className="tecla">F9</span>
                 </button>
               )}

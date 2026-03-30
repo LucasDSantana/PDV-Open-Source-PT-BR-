@@ -8,7 +8,7 @@ export function gerarComprovante(venda) {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
-    format: [80, 200], // Tamanho de cupom fiscal (80mm largura)
+    format: [80, 240], // Tamanho de cupom fiscal (80mm largura, mais alto para troco)
   });
 
   const margemEsq = 5;
@@ -40,6 +40,16 @@ export function gerarComprovante(venda) {
   y += 4;
   doc.text(`Venda: ${venda.id?.substring(0, 8) || 'N/A'}`, margemEsq, y);
   y += 4;
+
+  // Operador e Caixa
+  if (venda.operador_nome) {
+    doc.text(`Operador: ${venda.operador_nome}`, margemEsq, y);
+    y += 4;
+  }
+  if (venda.caixa_nome) {
+    doc.text(`Caixa: ${venda.caixa_nome}`, margemEsq, y);
+    y += 4;
+  }
 
   const pagamento = FORMAS_PAGAMENTO[venda.forma_pagamento];
   doc.text(`Pgto: ${pagamento?.nome || venda.forma_pagamento}`, margemEsq, y);
@@ -96,6 +106,23 @@ export function gerarComprovante(venda) {
   doc.text(formatarMoeda(venda.total), largura, y, { align: 'right' });
   y += 6;
 
+  // ── Troco (pagamento em dinheiro) ──
+  if (venda.forma_pagamento === 'dinheiro' && venda.valor_recebido) {
+    doc.setFontSize(7);
+    doc.text('-'.repeat(40), margemEsq, y);
+    y += 5;
+
+    doc.text('Valor Recebido:', margemEsq, y);
+    doc.text(formatarMoeda(venda.valor_recebido), largura, y, { align: 'right' });
+    y += 4;
+
+    doc.setFontSize(10);
+    doc.setFont('courier', 'bold');
+    doc.text('TROCO:', margemEsq, y);
+    doc.text(formatarMoeda(venda.troco || 0), largura, y, { align: 'right' });
+    y += 6;
+  }
+
   // Linha separadora
   doc.setFontSize(7);
   doc.setFont('courier', 'normal');
@@ -105,7 +132,7 @@ export function gerarComprovante(venda) {
   // ── Rodapé ──
   doc.text('Obrigado pela preferência!', 40, y, { align: 'center' });
   y += 4;
-  doc.text('PDV Open Source v1.0', 40, y, { align: 'center' });
+  doc.text('PDV Open Source v2.0', 40, y, { align: 'center' });
 
   // Baixar PDF
   doc.save(`comprovante-${venda.id?.substring(0, 8) || 'venda'}.pdf`);

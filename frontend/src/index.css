@@ -725,3 +725,225 @@ body {
 .modal {
   animation: slideUp 0.15s ease;
 }
+
+/* ── Login ───────────────────────────────────────────── */
+.login-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0f1117 0%, #1a1d27 50%, #0f1117 100%);
+  padding: var(--espaco-xl);
+}
+
+.login-card {
+  background: var(--cor-fundo-2);
+  border: 1px solid var(--cor-borda);
+  border-radius: 12px;
+  padding: var(--espaco-2xl);
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 80px rgba(74, 124, 255, 0.08);
+  animation: slideUp 0.3s ease;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: var(--espaco-2xl);
+}
+
+.login-logo {
+  font-size: 3rem;
+  margin-bottom: var(--espaco-md);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.login-titulo {
+  font-size: var(--tamanho-2xl);
+  font-weight: 700;
+  color: var(--cor-primaria);
+  letter-spacing: -1px;
+}
+
+.login-subtitulo {
+  color: var(--cor-texto-3);
+  font-size: var(--tamanho-sm);
+  margin-top: var(--espaco-xs);
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-lg);
+}
+
+.login-erro {
+  padding: var(--espaco-md);
+  background: var(--cor-perigo-fundo);
+  color: var(--cor-perigo);
+  border-radius: var(--raio-md);
+  font-size: var(--tamanho-sm);
+  text-align: center;
+  font-weight: 500;
+}
+
+.login-dica {
+  margin-top: var(--espaco-md);
+  padding: var(--espaco-md);
+  background: var(--cor-fundo-3);
+  border-radius: var(--raio-md);
+  font-size: var(--tamanho-xs);
+  color: var(--cor-texto-3);
+  text-align: center;
+}
+
+.login-credenciais {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: var(--espaco-xs);
+}
+
+.login-footer {
+  margin-top: var(--espaco-xl);
+  font-size: var(--tamanho-xs);
+  color: var(--cor-texto-3);
+}
+
+/* ── Sidebar Usuário e Caixa ─────────────────────────── */
+.sidebar-usuario {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-sm);
+  padding: var(--espaco-md);
+  border-top: 1px solid var(--cor-borda);
+  margin-top: var(--espaco-sm);
+}
+
+.sidebar-usuario-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-usuario-nome {
+  display: block;
+  font-size: var(--tamanho-sm);
+  font-weight: 600;
+  color: var(--cor-texto);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-usuario-perfil {
+  font-size: var(--tamanho-xs);
+  color: var(--cor-texto-3);
+}
+
+.sidebar-caixa {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-sm);
+  padding: var(--espaco-sm) var(--espaco-md);
+  margin: var(--espaco-xs) 0;
+  background: rgba(52, 211, 153, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+  border-radius: var(--raio-md);
+  font-size: var(--tamanho-sm);
+  font-weight: 600;
+  color: var(--cor-sucesso);
+}
+
+.sidebar-caixa-status {
+  animation: pulse 2s infinite;
+}
+
+/* ── Controle de Troco ───────────────────────────────── */
+.troco-container {
+  background: var(--cor-fundo-3);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+  padding: var(--espaco-lg);
+  margin-bottom: var(--espaco-lg);
+}
+
+.troco-input {
+  font-size: var(--tamanho-xl) !important;
+  text-align: center;
+  font-family: var(--fonte-mono);
+  letter-spacing: 1px;
+}
+
+.troco-resultado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--espaco-lg);
+  margin-top: var(--espaco-md);
+  background: rgba(52, 211, 153, 0.1);
+  border: 2px solid rgba(52, 211, 153, 0.3);
+  border-radius: var(--raio-lg);
+  animation: slideUp 0.2s ease;
+}
+
+.troco-resultado.troco-insuficiente {
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+.troco-label {
+  font-size: var(--tamanho-lg);
+  font-weight: 700;
+  color: var(--cor-sucesso);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.troco-insuficiente .troco-label {
+  color: var(--cor-perigo);
+}
+
+.troco-valor {
+  font-size: var(--tamanho-2xl);
+  font-weight: 700;
+  font-family: var(--fonte-mono);
+  color: var(--cor-sucesso);
+}
+
+.troco-insuficiente .troco-valor {
+  color: var(--cor-perigo);
+}
+
+/* ── Caixa Info Card ─────────────────────────────────── */
+.caixa-info-card {
+  background: var(--cor-fundo-2);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+  padding: var(--espaco-xl);
+}
+
+.caixa-info-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--espaco-lg);
+}
+
+.caixa-info-header h2 {
+  font-size: var(--tamanho-xl);
+  font-weight: 700;
+}
+
+.caixa-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--espaco-md);
+  font-size: var(--tamanho-sm);
+}
+

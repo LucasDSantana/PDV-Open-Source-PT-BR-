@@ -17,7 +17,7 @@ function tratarErrosValidacao(req, res, next) {
 // POST /api/vendas - Registrar venda
 router.post('/', validarVenda, tratarErrosValidacao, (req, res) => {
   try {
-    const { itens, desconto = 0, forma_pagamento } = req.body;
+    const { itens, desconto = 0, forma_pagamento, operador_id, caixa_id, valor_recebido, troco } = req.body;
     const vendaId = uuidv4();
 
     let subtotal = 0;
@@ -50,10 +50,16 @@ router.post('/', validarVenda, tratarErrosValidacao, (req, res) => {
     const descontoValor = parseFloat(desconto) || 0;
     const total = Math.max(0, subtotal - descontoValor);
 
-    // Inserir venda
+    // Inserir venda com campos novos
     executar(
-      `INSERT INTO vendas (id, subtotal, desconto, total, forma_pagamento, status) VALUES (?, ?, ?, ?, ?, 'finalizada')`,
-      [vendaId, subtotal, descontoValor, total, forma_pagamento]
+      `INSERT INTO vendas (id, subtotal, desconto, total, forma_pagamento, status, operador_id, caixa_id, valor_recebido, troco) VALUES (?, ?, ?, ?, ?, 'finalizada', ?, ?, ?, ?)`,
+      [
+        vendaId, subtotal, descontoValor, total, forma_pagamento,
+        operador_id || null,
+        caixa_id || null,
+        valor_recebido != null ? parseFloat(valor_recebido) : null,
+        troco != null ? parseFloat(troco) : null,
+      ]
     );
 
     // Inserir itens e atualizar estoque

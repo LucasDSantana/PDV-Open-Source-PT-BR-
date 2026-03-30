@@ -49,6 +49,10 @@ function criarTabelas() {
       total REAL NOT NULL DEFAULT 0,
       forma_pagamento TEXT NOT NULL DEFAULT 'dinheiro',
       status TEXT NOT NULL DEFAULT 'finalizada',
+      operador_id TEXT DEFAULT NULL,
+      caixa_id TEXT DEFAULT NULL,
+      valor_recebido REAL DEFAULT NULL,
+      troco REAL DEFAULT NULL,
       criado_em TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
     )
   `);
@@ -67,11 +71,78 @@ function criarTabelas() {
     )
   `);
 
+  // ── Tabela de Usuários ──
+  db.run(`
+    CREATE TABLE IF NOT EXISTS usuarios (
+      id TEXT PRIMARY KEY,
+      nome TEXT NOT NULL,
+      login TEXT NOT NULL UNIQUE,
+      senha_hash TEXT NOT NULL,
+      perfil TEXT NOT NULL DEFAULT 'operador' CHECK(perfil IN ('operador', 'gerente')),
+      ativo INTEGER NOT NULL DEFAULT 1,
+      criado_em TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+      atualizado_em TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+    )
+  `);
+
+  // ── Tabela de Caixas ──
+  db.run(`
+    CREATE TABLE IF NOT EXISTS caixas (
+      id TEXT PRIMARY KEY,
+      numero INTEGER NOT NULL,
+      nome TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'aberto' CHECK(status IN ('aberto', 'fechado')),
+      usuario_abertura_id TEXT NOT NULL,
+      usuario_abertura_nome TEXT NOT NULL,
+      valor_abertura REAL NOT NULL DEFAULT 0,
+      valor_fechamento REAL DEFAULT NULL,
+      valor_sistema REAL DEFAULT NULL,
+      diferenca REAL DEFAULT NULL,
+      data_abertura TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+      data_fechamento TEXT DEFAULT NULL,
+      observacao_fechamento TEXT DEFAULT NULL
+    )
+  `);
+
+  // ── Tabela de Movimentações de Caixa ──
+  db.run(`
+    CREATE TABLE IF NOT EXISTS movimentacoes_caixa (
+      id TEXT PRIMARY KEY,
+      caixa_id TEXT NOT NULL,
+      tipo TEXT NOT NULL CHECK(tipo IN ('sangria', 'suprimento')),
+      valor REAL NOT NULL CHECK(valor > 0),
+      observacao TEXT DEFAULT '',
+      usuario_id TEXT NOT NULL,
+      usuario_nome TEXT NOT NULL,
+      criado_em TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+      FOREIGN KEY (caixa_id) REFERENCES caixas(id)
+    )
+  `);
+
+  // ── Migração: adicionar colunas novas em vendas existentes ──
+  const colunas = buscarTodos("PRAGMA table_info(vendas)");
+  const nomes = colunas.map(c => c.name);
+  if (!nomes.includes('operador_id')) {
+    try { db.run("ALTER TABLE vendas ADD COLUMN operador_id TEXT DEFAULT NULL"); } catch(e) {}
+  }
+  if (!nomes.includes('caixa_id')) {
+    try { db.run("ALTER TABLE vendas ADD COLUMN caixa_id TEXT DEFAULT NULL"); } catch(e) {}
+  }
+  if (!nomes.includes('valor_recebido')) {
+    try { db.run("ALTER TABLE vendas ADD COLUMN valor_recebido REAL DEFAULT NULL"); } catch(e) {}
+  }
+  if (!nomes.includes('troco')) {
+    try { db.run("ALTER TABLE vendas ADD COLUMN troco REAL DEFAULT NULL"); } catch(e) {}
+  }
+
   // Índices
   try { db.run('CREATE INDEX IF NOT EXISTS idx_produtos_codigo ON produtos(codigo_barras)'); } catch(e) {}
   try { db.run('CREATE INDEX IF NOT EXISTS idx_produtos_nome ON produtos(nome)'); } catch(e) {}
   try { db.run('CREATE INDEX IF NOT EXISTS idx_vendas_data ON vendas(data_venda)'); } catch(e) {}
   try { db.run('CREATE INDEX IF NOT EXISTS idx_itens_venda_venda ON itens_venda(venda_id)'); } catch(e) {}
+  try { db.run('CREATE INDEX IF NOT EXISTS idx_usuarios_login ON usuarios(login)'); } catch(e) {}
+  try { db.run('CREATE INDEX IF NOT EXISTS idx_caixas_status ON caixas(status)'); } catch(e) {}
+  try { db.run('CREATE INDEX IF NOT EXISTS idx_movimentacoes_caixa ON movimentacoes_caixa(caixa_id)'); } catch(e) {}
 }
 
 function salvarNoDisco() {

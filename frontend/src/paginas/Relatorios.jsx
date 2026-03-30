@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { vendasAPI } from '../servicos/api';
+import { vendasAPI, relatoriosAPI } from '../servicos/api';
 import { formatarMoeda, formatarDataHora, FORMAS_PAGAMENTO, hojeISO } from '../utils/formatadores';
 
 export default function Relatorios() {
@@ -69,7 +69,17 @@ export default function Relatorios() {
           {carregando ? '⏳' : '🔄'} Atualizar
         </button>
 
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
+        <div style={{ display: 'flex', gap: '4px' }}>
+          <button className="btn btn-secundario" onClick={() => relatoriosAPI.vendasExcel({ data_inicio: dataInicio, data_fim: dataFim })} title="Exportar vendas em Excel">
+            📥 Excel
+          </button>
+          <button className="btn btn-secundario" onClick={() => relatoriosAPI.vendasCSV({ data_inicio: dataInicio, data_fim: dataFim })} title="Exportar vendas em CSV">
+            📥 CSV
+          </button>
+          <button className="btn btn-secundario" onClick={() => relatoriosAPI.produtosExcel()} title="Exportar produtos em Excel">
+            📦 Produtos
+          </button>
+        </div>        <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
           <button
             className={`btn ${aba === 'resumo' ? 'btn-primario' : 'btn-secundario'}`}
             onClick={() => setAba('resumo')}
